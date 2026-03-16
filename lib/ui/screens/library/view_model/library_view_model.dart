@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:my_app/model/aysnc_value.dart';
 import '../../../../data/repositories/songs/song_repository.dart';
 import '../../../states/player_state.dart';
 import '../../../../model/songs/song.dart';
 
+
 class LibraryViewModel extends ChangeNotifier {
   final SongRepository songRepository;
   final PlayerState playerState;
-  List<Song>? _songs;
+
+  AsyncValue<List<Song>> songs =  AsyncValue.loading();
 
   LibraryViewModel({required this.songRepository, required this.playerState}) {
     playerState.addListener(notifyListeners);
@@ -15,8 +18,6 @@ class LibraryViewModel extends ChangeNotifier {
     _init();
   }
 
-  List<Song> get songs => _songs == null ? [] : _songs!;
-
   @override
   void dispose() {
     playerState.removeListener(notifyListeners);
@@ -24,8 +25,15 @@ class LibraryViewModel extends ChangeNotifier {
   }
 
   void _init() async {
-    // 1 - Fetch songs
-    _songs = await songRepository.fetchSongs();
+    songs =  AsyncValue.loading();
+
+    notifyListeners();
+    try {
+      final result = await songRepository.fetchSongs();
+      songs = AsyncValue.success(result);
+    } catch (e) {
+      songs = AsyncValue.error(e);
+    }
 
     // 2 - notify listeners
     notifyListeners();
